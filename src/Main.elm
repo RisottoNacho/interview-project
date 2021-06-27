@@ -2,8 +2,9 @@ module Main exposing (main)
 
 import Browser
 import Html exposing (Html, div, text)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, disabled)
 import Html.Events
+import List exposing (maximum, minimum)
 import Svg
 import Svg.Attributes
 
@@ -26,12 +27,29 @@ main =
 
 
 type alias Model =
-    { value : Float }
+    { value : Float
+    , maximunCounter : Float
+    , minimunCounter : Float
+    , maximunAngle : Float
+    , minimunAngle : Float
+    , step : Float
+    }
 
 
 initialModel : Model
 initialModel =
-    { value = 0 }
+    { value = 0
+    , maximunCounter = 20
+    , minimunCounter = 0
+    , maximunAngle = 330
+    , minimunAngle = 30
+    , step = 1
+    }
+
+
+toDegrees : Model -> Float
+toDegrees model =
+    ((model.value - model.minimunCounter) * ((model.maximunAngle - model.minimunAngle) / (model.maximunCounter - model.minimunCounter))) + model.minimunAngle
 
 
 
@@ -40,13 +58,36 @@ initialModel =
 
 type Msg
     = Increase
+    | Decrease
+    | SetStep Float
+    | Reset
 
 
 update : Msg -> Model -> Model
 update msg model =
     case msg of
         Increase ->
-            { value = model.value + 1 }
+            if model.value + model.step <= model.maximunCounter then
+                { model | value = model.value + model.step }
+
+            else
+                { model | value = model.maximunCounter }
+
+        Decrease ->
+            if model.value - model.step >= model.minimunCounter then
+                { model | value = model.value - model.step }
+
+            else
+                { model | value = model.minimunCounter }
+
+        SetStep ammount ->
+            { model | step = ammount }
+
+        Reset ->
+            { model
+                | value = model.minimunCounter
+                , step = 1
+            }
 
 
 
@@ -59,20 +100,65 @@ update msg model =
 view : Model -> Html Msg
 view model =
     div
-        [ class "p-20 space-y-4" ]
+        [ class "flex flex-col items-center p-20 space-y-4 " ]
         [ div
             [ class "flex justify-center" ]
-            [ viewDial 150 ]
+            [ viewDial (toDegrees model) ]
         , div
-            [ class "flex justify-center items-center" ]
+            [ class "h-42 w-52 p-2  shadow bg-white rounded-lg " ]
             [ div
-                [ class "px-2" ]
-                [ text <| String.fromFloat model.value ]
-            , Html.button
-                [ class "px-2 py-1 rounded bg-gray-200 font-medium"
-                , Html.Events.onClick Increase
+                [ class "flex items-center sm:p-2" ]
+                [ div
+                    [ class "px-2 font-black" ]
+                    [ text "Value" ]
+                , Html.button
+                    [ class "px-2 py-1 flex-auto bg-gray-300 font-medium disabled:opacity-20 active:bg-gray-500 hover:bg-gray-400 focus:outline-none  "
+                    , Html.Events.onClick Decrease
+                    , disabled (model.value == model.minimunCounter)
+                    ]
+                    [ text "-" ]
+                , div
+                    [ class "text-center flex-auto border-4  border-gray-300  font-black w-16  " ]
+                    [ text <| String.fromFloat model.value ]
+                , Html.button
+                    [ class "px-2 py-1 flex-auto  bg-gray-300 font-medium disabled:opacity-20 active:bg-gray-500 hover:bg-gray-400 focus:outline-none  "
+                    , Html.Events.onClick Increase
+                    , disabled (model.value == model.maximunCounter)
+                    ]
+                    [ text "+" ]
                 ]
-                [ text "+" ]
+            , div
+                [ class "flex justify-left items-center sm:px-2 " ]
+                [ div
+                    [ class "px-3 font-black" ]
+                    [ text "Step" ]
+                , Html.button
+                    [ class "px-3 py-1 flex-1 bg-gray-200 font-medium hover:bg-gray-300 focus:outline-none"
+                    , Html.Events.onClick (SetStep 1)
+                    , Html.Attributes.classList [ ( "bg-gray-500 text-white hover:bg-gray-500", model.step == 1 ) ]
+                    ]
+                    [ text "1" ]
+                , Html.button
+                    [ class "px-3 py-1 flex-1 bg-gray-200 font-medium hover:bg-gray-300 focus:outline-none"
+                    , Html.Events.onClick (SetStep 0.5)
+                    , Html.Attributes.classList [ ( "bg-gray-500 text-white hover:bg-gray-500", model.step == 0.5 ) ]
+                    ]
+                    [ text "½" ]
+                , Html.button
+                    [ class "px-3 py-1  flex-1 bg-gray-200 font-medium hover:bg-gray-300 focus:outline-none"
+                    , Html.Events.onClick (SetStep 0.25)
+                    , Html.Attributes.classList [ ( "bg-gray-500 text-white hover:bg-gray-500", model.step == 0.25 ) ]
+                    ]
+                    [ text "¼" ]
+                ]
+            , div
+                [ class "flex justify-center items-center sm:p-2" ]
+                [ Html.button
+                    [ class "px-2 py-1 flex-auto rounded active:bg-gray-400 bg-gray-200 font-medium hover:bg-gray-300 focus:outline-none"
+                    , Html.Events.onClick Reset
+                    ]
+                    [ text "Reset" ]
+                ]
             ]
         ]
 
